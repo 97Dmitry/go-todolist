@@ -6,8 +6,14 @@ CREATE TABLE todolist.users
     version BIGINT       NOT NULL DEFAULT 1,
     email   VARCHAR(255) NOT NULL
         CHECK (email ILIKE '_%@%_._%')
-        CHECK (email = BTRIM(email))
+        CHECK (email = BTRIM(email)),
+    name    TEXT         NOT NULL
+        CHECK (char_length(name) BETWEEN 3 AND 40)
+        CHECK (name = BTRIM(name))
 );
+
+CREATE UNIQUE INDEX users_email_unique_idx
+    ON todolist.users (lower(email));
 
 CREATE TABLE todolist.tasks
 (

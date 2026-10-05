@@ -8,8 +8,8 @@ export
 export PROJECT_ROOT=$(shell pwd)
 DOCKER_USER := $(shell id -u):$(shell id -g)
 
-.PHONY: help require-env env-up env-down env-cleanup \
-	migrate-create migrate-up migrate-down migrate-action
+.PHONY: help require-env env-up env-down env-cleanup env-port-forwarder env-port-close \
+	migrate-create migrate-up migrate-down migrate-action go-todolist-run exec-db
 
 help: ## Показать список команд
 	@awk 'BEGIN{FS=":.*?## "} /^[a-zA-Z0-9_-]+:.*?## /{n++; t[n]=$$1; d[n]=$$2; if(length($$1)>w) w=length($$1)} END{for(i=1;i<=n;i++) printf "  \033[36m%-*s\033[0m %s\n", w, t[i], d[i]}' $(firstword $(MAKEFILE_LIST))
@@ -19,6 +19,9 @@ require-env:
 
 env-up: require-env ## Поднять контейнер с БД
 	@docker compose up -d go-todolist-database
+
+exec-db: require-env ## Открыть psql в контейнере БД
+	@docker compose exec go-todolist-database sh -c 'exec psql -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"'
 
 env-port-forwarder: ## Поднять проброс портов базы данных
 	@docker compose up -d go-todolist-port-forwarder
@@ -58,3 +61,6 @@ migrate-action: require-env ## Выполнить произвольную ко�
 		-path /migrations \
 		-database postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@go-todolist-database:5432/$(POSTGRES_DB)?sslmode=disable \
 		$(action)
+
+go-todolist-run: require-env ## Запустить go todolist приложение
+	@go run ./cmd/gotodolist
