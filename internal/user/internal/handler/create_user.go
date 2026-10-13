@@ -23,7 +23,7 @@ type CreateUserResponse struct {
 
 func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	responder := response.NewResponder(logger.FromContext(ctx), w)
+	responder := response.NewResponder(logger.FromContext(ctx), w, r)
 
 	var createUserRequest CreateUserRequest
 	if err := request.DecodeAndValidate(r, &createUserRequest); err != nil {

@@ -34,7 +34,7 @@ func Recover() Middleware {
 					panic(http.ErrAbortHandler)
 				}
 
-				response.NewResponder(log, rw).Problem(response.NewProblem(http.StatusInternalServerError, ""))
+				response.NewResponder(log, rw, r).Problem(response.NewProblem(http.StatusInternalServerError, ""))
 			}()
 
 			next.ServeHTTP(rw, r)

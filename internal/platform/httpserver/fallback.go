@@ -35,7 +35,7 @@ func serveMux(mux *http.ServeMux, w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Allow", recorder.header.Get("Allow"))
 	}
 
-	response.NewResponder(logger.FromContext(r.Context()), w).Problem(response.NewProblem(statusCode, ""))
+	response.NewResponder(logger.FromContext(r.Context()), w, r).Problem(response.NewProblem(statusCode, ""))
 }
 
 type headerRecorder struct {

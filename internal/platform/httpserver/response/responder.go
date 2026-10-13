@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/97Dmitry/go-todolist/internal/apperrors"
 	"go.uber.org/zap"
@@ -11,23 +12,39 @@ import (
 )
 
 type Responder struct {
-	log *zap.Logger
-	w   http.ResponseWriter
+	log    *zap.Logger
+	w      http.ResponseWriter
+	source string
 }
 
-func NewResponder(log *zap.Logger, w http.ResponseWriter) *Responder {
+func NewResponder(log *zap.Logger, w http.ResponseWriter, req *http.Request) *Responder {
+	source := req.RequestURI
+	if source == "" {
+		source = req.URL.RequestURI()
+	}
+
 	return &Responder{
-		log: log,
-		w:   w,
+		log:    log,
+		w:      w,
+		source: source,
 	}
 }
 
 func (r *Responder) JSON(statusCode int, body any) {
-	r.write(statusCode, "application/json", body)
+	r.write(statusCode, "application/json", struct {
+		Data     any       `json:"data"`
+		Status   int       `json:"status"`
+		Datetime time.Time `json:"datetime"`
+		Source   string    `json:"source"`
+	}{body, statusCode, time.Now().UTC(), r.source})
 }
 
 func (r *Responder) Problem(problem Problem) {
-	r.write(problem.Status, problemContentType, problem)
+	r.write(problem.Status, problemContentType, struct {
+		Problem
+		Datetime time.Time `json:"datetime"`
+		Source   string    `json:"source"`
+	}{problem, time.Now().UTC(), r.source})
 }
 
 // Error logs err with msg and responds with problem details. Only messages of
@@ -46,11 +63,16 @@ func (r *Responder) Error(err error, msg string) {
 }
 
 func (r *Responder) write(statusCode int, contentType string, body any) {
+	data, err := json.Marshal(body)
+	if err != nil {
+		r.log.Error("encode response body", zap.Error(err))
+		return
+	}
+
 	r.w.Header().Set("Content-Type", contentType)
 	r.w.WriteHeader(statusCode)
-
-	if err := json.NewEncoder(r.w).Encode(body); err != nil {
-		r.log.Error("encode response body", zap.Error(err))
+	if _, err := r.w.Write(append(data, '\n')); err != nil {
+		r.log.Error("write response body", zap.Error(err))
 	}
 }
 
